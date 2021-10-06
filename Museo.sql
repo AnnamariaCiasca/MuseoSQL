@@ -196,3 +196,121 @@ JOIN Opera AS o ON o.IdMuseo = m.IdMuseo
 JOIN Artista AS a ON a.IdArtista = o.IdArtista
 GROUP BY m.Nome, a.Nazionalità
 ORDER BY m.Nome
+
+---------------------------------------------------------------------------------------------------
+--1) Scrivere una view che consenta di mostrare le caratteristiche complete delle opere 
+--   (ovvero includendo i dati del museo che la contiene e dell’artista )
+
+CREATE VIEW CaratteristicheOpere
+AS (
+SELECT o.Titolo, a.Nome AS 'Artista', m.Nome AS 'Museo', m.Città 
+FROM Opera AS o
+JOIN Artista AS a ON a.IdArtista = o.IdArtista
+JOIN Museo AS m ON m.IdMuseo = o.IdMuseo
+);
+
+SELECT * FROM CaratteristicheOpere ORDER BY Artista
+
+
+--2) Scrivere per le tabelle Museo, Opera, Personaggio e Artista delle stored procedure in grado di eseguire l’operazione di inserimento. 
+--   I parametri da inserire nelle stored procedure sono a vostra discrezione.
+
+CREATE PROCEDURE InserisciMuseo
+@NomeMuseo NVARCHAR(50),
+@Città NVARCHAR(30)
+AS
+INSERT INTO Museo VALUES (@NomeMuseo, @Città)
+
+EXECUTE InserisciMuseo 'Reggia di Caserta', 'Caserta';
+
+
+CREATE PROCEDURE InserisciOpera
+@CodiceOpera NVARCHAR(5),
+@Titolo NVARCHAR(50),
+@NomeMuseo NVARCHAR(50),
+@NomeArtista NVARCHAR(30)
+AS
+DECLARE @IdMuseo INT
+DECLARE @IdArtista INT
+
+
+SELECT @IdMuseo = m.IdMuseo
+FROM Museo AS m
+WHERE m.Nome = @NomeMuseo
+
+SELECT @IdArtista = a.IdArtista
+FROM Artista AS a
+WHERE a.Nome = @NomeArtista
+
+INSERT INTO Opera VALUES (@CodiceOpera, @Titolo, @IdMuseo, @IdArtista)
+
+EXECUTE InserisciOpera 'OL843', 'Girasoli', 'Louvre', 'Vincent Van Goghh';
+
+
+
+CREATE PROCEDURE InserisciArtista
+@Nome NVARCHAR(30),
+@Nazionalità NVARCHAR(10)
+AS
+INSERT INTO Museo VALUES (@Nome, @Nazionalità)
+
+EXECUTE InserisciArtista 'Frida Kahlo', 'Messicana';
+
+
+CREATE PROCEDURE InserisciPersonaggio
+@Nome NVARCHAR(30)
+AS
+INSERT INTO Personaggio VALUES (@Nome)
+
+EXECUTE InserisciPersonaggio 'Afrodite';
+
+
+--3) Scrivere una stored procedure che consenta di spostare un’opera da un museo all’altro.
+CREATE PROCEDURE SpostaOpera
+@TitoloOpera NVARCHAR(50),
+@NomeMuseoDestinazione NVARCHAR(50)
+AS
+ DECLARE @IdMuseoDestinazione INT
+
+ SELECT @IdMuseoDestinazione = m.IdMuseo
+ FROM Museo AS m
+ WHERE m.Nome = @NomeMuseoDestinazione
+
+UPDATE Opera SET IdMuseo = @IdMuseoDestinazione 
+WHERE Titolo = @TitoloOpera
+
+EXECUTE SpostaOpera 'Girasoli', 'Ermitage';
+
+
+
+--4) Scrivere una function che restituisca il numero delle opere di un dato museo
+CREATE FUNCTION NumeroOpereMuseo(@NomeMuseo NVARCHAR(50))
+RETURNS INT
+AS
+ BEGIN 
+ DECLARE @NumeroOpere INT
+
+ SELECT @NumeroOpere = COUNT(*)
+ FROM Museo AS m
+ JOIN Opera AS o ON o.IdMuseo = m.IdMuseo
+ WHERE m.Nome = @NomeMuseo
+
+ RETURN @NumeroOpere
+END
+
+SELECT dbo.NumeroOpereMuseo('National Gallery') AS 'Numero di Opere nel Museo inserito';
+
+
+--5) Scrivere una stored procedure che consenta di eliminare un artista dal database
+CREATE PROCEDURE EliminaArtista
+@NomeArtista NVARCHAR(30)
+AS
+ DECLARE @IdArtista INT
+
+ SELECT @IdArtista = a.IdArtista
+ FROM Artista AS a
+ WHERE a.Nome = @NomeArtista
+
+DELETE FROM Artista WHERE IdArtista = @IdArtista
+
+EXECUTE EliminaArtista 'Caravaggio';
